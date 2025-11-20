@@ -18,7 +18,13 @@ from pydantic_temporal_example.temporal.slack_activities import (
     slack_chat_post_message,
     slack_conversations_replies,
 )
-from pydantic_temporal_example.v1.agents import docs_answering_agent
+from pydantic_temporal_example.v2.agents import docs_answering_agent, triage_agent
+
+temporal_triage_agent = TemporalAgent(
+    triage_agent,
+    name="triage_agent",
+    model_activity_config=ActivityConfig(start_to_close_timeout=timedelta(seconds=300)),
+)
 
 temporal_docs_answering_agent = TemporalAgent(
     docs_answering_agent,
@@ -65,20 +71,35 @@ class SlackThreadWorkflow:
             self._thread_messages.append(message)
         self._thread_messages.sort(key=lambda m: m["ts"])
 
-        # Generate a response
+        # Stringify the thread
         stringified_thread = json.dumps(
             self._thread_messages, indent=2
         )  # Note: it might be nice to better-format the thread messages
-        result = (await temporal_docs_answering_agent.run(stringified_thread)).output
-        content = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": result,
+
+        # Check if this is a message we should respond to:
+        triage_result = (await temporal_triage_agent.run(stringified_thread)).output
+        if not triage_result.includes_relevant_question:
+            content = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"I can't answer that because: {triage_result.reasoning}",
+                    },
                 },
-            },
-        ]
+            ]
+        else:
+            # Generate a response
+            result = (await temporal_docs_answering_agent.run(stringified_thread)).output
+            content = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": result,
+                    },
+                },
+            ]
 
         # Post the response
         await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
