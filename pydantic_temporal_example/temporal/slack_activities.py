@@ -2,10 +2,17 @@
 from typing import Any, cast
 
 import logfire
+from httpx import AsyncClient
 from slack_sdk.web.async_client import AsyncWebClient as SlackClient
 from temporalio import activity
 
-from pydantic_temporal_example.models import SlackConversationsRepliesRequest, SlackMessageID, SlackReaction, SlackReply
+from pydantic_temporal_example.models import (
+    SlackConversationsRepliesRequest,
+    SlackInteractionResponse,
+    SlackMessageID,
+    SlackReaction,
+    SlackReply,
+)
 from pydantic_temporal_example.settings import get_settings
 
 
@@ -72,12 +79,33 @@ async def slack_reactions_remove(reaction: SlackReaction) -> dict[str, Any]:
     return cast(dict[str, Any], response.data)
 
 
+@activity.defn
+@logfire.instrument
+async def slack_get_permalink(message: SlackMessageID) -> dict[str, Any]:
+    response = await _get_slack_client().chat_getPermalink(
+        channel=message.channel,
+        message_ts=message.ts,
+    )
+    return cast(dict[str, Any], response.data)
+
+
+@activity.defn
+async def slack_interaction_response(payload: SlackInteractionResponse):
+    async with AsyncClient() as client:
+        response = await client.post(payload.response_url, json={"replace_original": "true", "blocks": payload.blocks})
+        if response.status_code >= 300:
+            logfire.info(f"{response.content=} {response.status_code=}")
+            response.raise_for_status()
+
+
 ALL_SLACK_ACTIVITIES = [
     slack_conversations_replies,
     slack_chat_post_message,
     slack_chat_delete,
     slack_reactions_add,
     slack_reactions_remove,
+    slack_get_permalink,
+    slack_interaction_response,
 ]
 
 

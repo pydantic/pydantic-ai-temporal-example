@@ -14,7 +14,7 @@ from pydantic_temporal_example.models import (
     URLVerificationEvent,
 )
 from pydantic_temporal_example.settings import get_settings
-from pydantic_temporal_example.slack import get_verified_slack_events_body
+from pydantic_temporal_example.slack import get_verified_slack_events_body, get_verified_slack_interaction_body
 from pydantic_temporal_example.temporal.workflows import SlackThreadWorkflow
 
 router = APIRouter()
@@ -48,6 +48,15 @@ async def handle_event(
     return Response(status_code=204)
 
 
+@router.post("/interaction")
+async def handle_interaction(
+    *,
+    temporal_client: TemporalClient = Depends(get_temporal_client),
+    body: dict[str, Any] = Depends(get_verified_slack_interaction_body),
+) -> Response:
+    return await handle_interaction_event(body, temporal_client)
+
+
 async def handle_url_verification_event(event: URLVerificationEvent) -> JSONResponse:
     return JSONResponse(content={"challenge": event.challenge})
 
@@ -71,6 +80,22 @@ async def handle_message_channels_event(event: MessageChannelsEvent, temporal_cl
     try:
         await maybe_handle.describe()
         await maybe_handle.signal("submit_message_channels_event", args=[event])
+    except TemporalError:
+        # workflow doesn't exist yet, do nothing other than record what happened
+        logfire.info("No workflow found for this thread")
+        pass
+    return Response(status_code=204)
+
+
+async def handle_interaction_event(body: dict[str, Any], temporal_client: TemporalClient) -> Response:
+    # Get the ID from body
+    logfire.info("body", content=body)
+    event_thread_ts = body["actions"][0]["value"].split(":")[0]
+    maybe_workflow_id = f"app-mention-{event_thread_ts.replace('.', '-')}"
+    maybe_handle = temporal_client.get_workflow_handle_for(SlackThreadWorkflow.run, workflow_id=maybe_workflow_id)
+    try:
+        await maybe_handle.describe()
+        await maybe_handle.signal("submit_interaction", args=[body])
     except TemporalError:
         # workflow doesn't exist yet, do nothing other than record what happened
         logfire.info("No workflow found for this thread")

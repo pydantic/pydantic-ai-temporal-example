@@ -11,7 +11,7 @@ async def build_temporal_client() -> TemporalClient:
     temporal_port = settings.temporal_port
 
     def _setup_logfire() -> logfire.Logfire:
-        instance = logfire.configure()
+        instance = logfire.configure(scrubbing=False)
         logfire.instrument_pydantic_ai()
         logfire.instrument_httpx(capture_all=True)
         return instance

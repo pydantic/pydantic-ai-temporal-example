@@ -62,7 +62,7 @@ SlackEventsAPIBodyAdapter: TypeAdapter[SlackEventsAPIBody | URLVerificationEvent
 
 class SlackMessageID(BaseModel):
     channel: str
-    ts: str
+    ts: str | None
 
 
 class SlackReply(BaseModel):
@@ -89,3 +89,8 @@ class SlackConversationsRepliesRequest(BaseModel):
     channel: str
     ts: str
     oldest: str | None  # only include messages after this unix timestamp
+
+
+class SlackInteractionResponse(BaseModel):
+    response_url: str
+    blocks: list[dict[str, Any]]

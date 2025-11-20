@@ -11,6 +11,7 @@ from pydantic_temporal_example.temporal.workflows import (
     SlackThreadWorkflow,
     temporal_dinner_research_agent,
     temporal_dispatch_agent,
+    temporal_slack_bot_agent,
 )
 
 
@@ -31,6 +32,10 @@ async def temporal_worker() -> AsyncIterator[Worker]:
                 task_queue=settings.temporal_task_queue,
                 workflows=[SlackThreadWorkflow],
                 activities=ALL_SLACK_ACTIVITIES,
-                plugins=[AgentPlugin(temporal_dispatch_agent), AgentPlugin(temporal_dinner_research_agent)],
+                plugins=[
+                    AgentPlugin(temporal_dispatch_agent),
+                    AgentPlugin(temporal_dinner_research_agent),
+                    AgentPlugin(temporal_slack_bot_agent),
+                ],
             )
         )
