@@ -5,8 +5,8 @@ from pydantic_ai.durable_exec.temporal import AgentPlugin
 
 from pydantic_temporal_example.dependencies import lifespan
 from pydantic_temporal_example.temporal.worker import temporal_worker
-from pydantic_temporal_example.v2.api import router
-from pydantic_temporal_example.v2.workflows import (
+from pydantic_temporal_example.v3.api import router
+from pydantic_temporal_example.v3.workflows import (
     SlackThreadWorkflow,
     temporal_docs_answering_agent,
     temporal_triage_agent,
@@ -25,7 +25,7 @@ async def main():
     async with temporal_worker(
         [SlackThreadWorkflow], [AgentPlugin(temporal_docs_answering_agent), AgentPlugin(temporal_triage_agent)]
     ):
-        config = uvicorn.Config("pydantic_temporal_example.v2.app:app", port=4000)
+        config = uvicorn.Config("pydantic_temporal_example.v3.app:app", port=4000)
         server = uvicorn.Server(config)
         await server.serve()
 

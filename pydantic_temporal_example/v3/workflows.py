@@ -3,6 +3,7 @@ import json
 from datetime import timedelta
 from typing import Any
 
+import logfire
 from pydantic_ai.durable_exec.temporal import TemporalAgent
 from temporalio import workflow
 from temporalio.workflow import ActivityConfig
@@ -18,7 +19,7 @@ from pydantic_temporal_example.temporal.slack_activities import (
     slack_chat_post_message,
     slack_conversations_replies,
 )
-from pydantic_temporal_example.v2.agents import docs_answering_agent, triage_agent
+from pydantic_temporal_example.v3.agents import docs_answering_agent, triage_agent
 
 temporal_triage_agent = TemporalAgent(
     triage_agent,
@@ -36,7 +37,7 @@ temporal_docs_answering_agent = TemporalAgent(
 @workflow.defn
 class SlackThreadWorkflow:
     def __init__(self) -> None:
-        self._pending_events: asyncio.Queue[AppMentionEvent] = asyncio.Queue()
+        self._pending_events: asyncio.Queue[MessageChannelsEvent] = asyncio.Queue()
         self._thread_messages: list[dict[str, Any]] = []
 
     @property
@@ -55,10 +56,10 @@ class SlackThreadWorkflow:
                 await self.handle_event(event)
 
     @workflow.signal
-    async def submit_app_mention_event(self, event: AppMentionEvent):
+    async def submit_message_channels_event(self, event: MessageChannelsEvent):
         await self._pending_events.put(event)
 
-    async def handle_event(self, event: AppMentionEvent):
+    async def handle_event(self, event: MessageChannelsEvent):
         # Load/update thread contents
         thread = SlackMessageID(channel=event.channel, ts=event.reply_thread_ts)
         request = SlackConversationsRepliesRequest(channel=thread.channel, ts=thread.ts, oldest=self._most_recent_ts)
@@ -79,15 +80,7 @@ class SlackThreadWorkflow:
         # Check if this is a message we should respond to:
         triage_result = (await temporal_triage_agent.run(stringified_thread)).output
         if not triage_result.includes_relevant_question:
-            content = [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"I can't answer that because: {triage_result.reasoning}",
-                    },
-                },
-            ]
+            logfire.info('no relevant question: {reasoning}', reasoning=triage_result.reasoning)
         else:
             # Generate a response
             result = (await temporal_docs_answering_agent.run(stringified_thread)).output
@@ -101,12 +94,12 @@ class SlackThreadWorkflow:
                 },
             ]
 
-        # Post the response
-        await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
-            slack_chat_post_message,
-            SlackReply(
-                thread=SlackMessageID(channel=event.channel, ts=event.reply_thread_ts),
-                content=content,
-            ),
-            start_to_close_timeout=timedelta(seconds=10),
-        )
+            # Post the response
+            await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
+                slack_chat_post_message,
+                SlackReply(
+                    thread=SlackMessageID(channel=event.channel, ts=event.reply_thread_ts),
+                    content=content,
+                ),
+                start_to_close_timeout=timedelta(seconds=10),
+            )

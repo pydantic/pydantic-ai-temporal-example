@@ -30,7 +30,7 @@ temporal_docs_answering_agent = TemporalAgent(
 @workflow.defn
 class SlackThreadWorkflow:
     def __init__(self) -> None:
-        self._pending_events: asyncio.Queue[AppMentionEvent | MessageChannelsEvent | str] = asyncio.Queue()
+        self._pending_events: asyncio.Queue[AppMentionEvent] = asyncio.Queue()
         self._thread_messages: list[dict[str, Any]] = []
 
     @property
