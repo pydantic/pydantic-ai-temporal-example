@@ -1,14 +1,10 @@
 
-import logfire
 from pydantic_ai import WebSearchTool
-
-logfire.configure(scrubbing=False)
-logfire.instrument_pydantic_ai()
 
 from pydantic_ai import Agent
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 
-server = MCPServerStreamableHTTP(url="https://mcp.deepwiki.com/mcp", timeout=30)
+server = MCPServerStreamableHTTP(url="https://mcp.deepwiki.com/mcp", timeout=30, id='deepwiki')
 
 docs_answering_agent = Agent(
     "openai-responses:gpt-5-mini",
@@ -26,5 +22,6 @@ docs_answering_agent = Agent(
     * You MUST include any relevant links to the pydantic docs wherever possible. These links should be under https://ai.pydantic.dev/ or https://logfire.pydantic.dev/docs/.
     * Your answer will be sent as a slack message and therefore MUST be formatted as *Slack-compatible* "mrkdwn" text, with all the bizarre caveats of slack mrkdwn,
     including no using double-asterisks, no headers with more than 2 '#'s, no triple-backtick suffixes (i.e., just use '```', not '```python', etc.), and the slack format for links using angle brackets.
+    * Your response MUST be less than 3001 characters
     """,
 )

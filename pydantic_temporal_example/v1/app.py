@@ -1,23 +1,25 @@
 import logfire
 import uvicorn
 from fastapi import FastAPI
+from pydantic_ai.durable_exec.temporal import AgentPlugin
 
-from pydantic_temporal_example.api import router
 from pydantic_temporal_example.dependencies import lifespan
 from pydantic_temporal_example.temporal.worker import temporal_worker
+from pydantic_temporal_example.v1.workflows import SlackThreadWorkflow, temporal_docs_answering_agent
+from pydantic_temporal_example.v1.api import router
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(router)
 
-logfire.configure(service_name="app")
+logfire.configure(service_name="app", scrubbing=False)
 logfire.instrument_pydantic_ai()
 logfire.instrument_httpx(capture_all=True)
 logfire.instrument_fastapi(app)
 
 
 async def main():
-    async with temporal_worker():
-        config = uvicorn.Config("pydantic_temporal_example.app:app", port=4000)
+    async with temporal_worker([SlackThreadWorkflow], [AgentPlugin(temporal_docs_answering_agent)]):
+        config = uvicorn.Config("pydantic_temporal_example.v1.app:app", port=4000)
         server = uvicorn.Server(config)
         await server.serve()
 

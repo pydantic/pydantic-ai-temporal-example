@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic_ai.durable_exec.temporal import TemporalAgent
 from temporalio import workflow
+from temporalio.workflow import ActivityConfig
 
 from pydantic_temporal_example.models import (
     AppMentionEvent,
@@ -17,11 +18,12 @@ from pydantic_temporal_example.temporal.slack_activities import (
     slack_chat_post_message,
     slack_conversations_replies,
 )
-from pydantic_temporal_example.v1.agent import docs_answering_agent
+from pydantic_temporal_example.v1.agents import docs_answering_agent
 
 temporal_docs_answering_agent = TemporalAgent(
     docs_answering_agent,
     name="docs_answering_agent",
+    model_activity_config=ActivityConfig(start_to_close_timeout=timedelta(seconds=300)),
 )
 
 
@@ -68,21 +70,23 @@ class SlackThreadWorkflow:
             self._thread_messages, indent=2
         )  # Note: it might be nice to better-format the thread messages
         result = (await temporal_docs_answering_agent.run(stringified_thread)).output
+        content = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": result,
+                },
+            },
+        ]
+
 
         # Post the response
         await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
             slack_chat_post_message,
             SlackReply(
                 thread=SlackMessageID(channel=event.channel, ts=event.reply_thread_ts),
-                content=[
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": result,
-                        },
-                    },
-                ],
+                content=content,
             ),
             start_to_close_timeout=timedelta(seconds=10),
         )
