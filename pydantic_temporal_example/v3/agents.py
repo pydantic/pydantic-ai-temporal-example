@@ -1,8 +1,6 @@
 from dataclasses import dataclass
-from typing import Annotated
 
-from annotated_types import MaxLen
-from pydantic import with_config, PlainValidator
+from pydantic import with_config
 from pydantic_ai import Agent, WebSearchTool
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 
@@ -29,20 +27,19 @@ triage_agent = Agent(
     * temporalio/sdk-python
 
     If so, use `includes_relevant_question=true` in your response, otherwise `includes_relevant_question=false`.
+    
+    You will receive a full slack thread's worth of messages, but you should base your response on the _last_ message
+    of the thread, which is the message that will be responded to. So, even if there are questions earlier in the thread,
+    if the final message doesn't have a relevant question, you should set `includes_relevant_question=false`. 
     """,
 )
 
 server = MCPServerStreamableHTTP(url="https://mcp.deepwiki.com/mcp", timeout=30, id="deepwiki")
 
-def ensure_response_not_too_long(response: str) -> str:
-    if len(response) > 2500:
-        raise ValueError(f"Response too long: {len(response)=}")
-    return response
 
 docs_answering_agent = Agent(
     "openai-responses:gpt-5-mini",
     toolsets=[server],
-    output_type=Annotated[str, MaxLen(2500)],
     builtin_tools=[WebSearchTool()],
     instructions="""\
     Use your tools to retrieve documentation and answer any questions related to the following repositories:
@@ -59,3 +56,10 @@ docs_answering_agent = Agent(
     * Keep your response brief; it MUST be less than 2500 characters or you will get an error. 
     """,
 )
+
+
+@docs_answering_agent.output_validator
+async def ensure_response_not_too_long(response: str) -> str:
+    if len(response) > 2500:
+        raise ValueError(f"Response too long: {len(response)=}")
+    return response

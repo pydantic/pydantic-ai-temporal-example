@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends
 from starlette.responses import JSONResponse, Response
 from temporalio.exceptions import TemporalError
 
-from pydantic_temporal_example.dependencies import TemporalClient, get_temporal_client
+from pydantic_temporal_example.dependencies import TemporalClient, get_slack_bot_user_id, get_temporal_client
 from pydantic_temporal_example.models import (
-    AppMentionEvent,
+    MessageChannelsEvent,
     SlackEventsAPIBody,
-    URLVerificationEvent, MessageChannelsEvent,
+    URLVerificationEvent,
 )
 from pydantic_temporal_example.settings import get_settings
 from pydantic_temporal_example.slack import get_verified_slack_events_body
@@ -23,6 +23,7 @@ router = APIRouter()
 async def handle_event(
     *,
     temporal_client: TemporalClient = Depends(get_temporal_client),
+    slack_bot_user_id: str = Depends(get_slack_bot_user_id),
     body: SlackEventsAPIBody | URLVerificationEvent | dict[str, Any] = Depends(get_verified_slack_events_body),
 ) -> Response:
     """This should be used as the endpoint for the Slack Events API for your bot."""
@@ -32,7 +33,10 @@ async def handle_event(
         return await handle_url_verification_event(body)
     elif isinstance(body, SlackEventsAPIBody):
         if isinstance(body.event, MessageChannelsEvent):
-            return await handle_message_channels_event(body.event, temporal_client)
+            if body.event.user == slack_bot_user_id:
+                logfire.info("Ignoring event for message created by this bot")
+            else:
+                return await handle_message_channels_event(body.event, temporal_client)
     else:
         assert_never(body)
     return Response(status_code=204)

@@ -9,7 +9,6 @@ from temporalio.workflow import ActivityConfig
 
 from pydantic_temporal_example.models import (
     AppMentionEvent,
-    MessageChannelsEvent,
     SlackConversationsRepliesRequest,
     SlackMessageID,
     SlackReply,

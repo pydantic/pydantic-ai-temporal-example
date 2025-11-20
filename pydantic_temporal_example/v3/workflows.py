@@ -9,7 +9,6 @@ from temporalio import workflow
 from temporalio.workflow import ActivityConfig
 
 from pydantic_temporal_example.models import (
-    AppMentionEvent,
     MessageChannelsEvent,
     SlackConversationsRepliesRequest,
     SlackMessageID,
@@ -80,7 +79,7 @@ class SlackThreadWorkflow:
         # Check if this is a message we should respond to:
         triage_result = (await temporal_triage_agent.run(stringified_thread)).output
         if not triage_result.includes_relevant_question:
-            logfire.info('no relevant question: {reasoning}', reasoning=triage_result.reasoning)
+            logfire.info("no relevant question: {reasoning}", reasoning=triage_result.reasoning)
         else:
             # Generate a response
             result = (await temporal_docs_answering_agent.run(stringified_thread)).output
