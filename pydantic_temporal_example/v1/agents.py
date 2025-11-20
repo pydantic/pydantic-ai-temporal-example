@@ -1,4 +1,4 @@
-from pydantic_ai import Agent, WebSearchTool
+from pydantic_ai import Agent, ModelRetry, WebSearchTool
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 
 server = MCPServerStreamableHTTP(url="https://mcp.deepwiki.com/mcp", timeout=30, id="deepwiki")
@@ -33,5 +33,5 @@ docs_answering_agent = Agent(
 @docs_answering_agent.output_validator
 async def ensure_response_not_too_long(response: str) -> str:
     if len(response) > 2500:
-        raise ValueError(f"Response too long: {len(response)=}")
+        raise ModelRetry(f"Response too long: {len(response)=}")
     return response
