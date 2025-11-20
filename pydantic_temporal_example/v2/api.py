@@ -34,7 +34,6 @@ async def handle_event(
             return await handle_app_mention_event(body.event, temporal_client)
     else:
         assert_never(body)
-
     return Response(status_code=204)
 
 

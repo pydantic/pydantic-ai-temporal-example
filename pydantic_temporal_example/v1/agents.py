@@ -3,10 +3,13 @@ from pydantic_ai.mcp import MCPServerStreamableHTTP
 
 server = MCPServerStreamableHTTP(url="https://mcp.deepwiki.com/mcp", timeout=30, id="deepwiki")
 
+
 docs_answering_agent = Agent(
     "openai-responses:gpt-5-mini",
     toolsets=[server],
     builtin_tools=[WebSearchTool()],
+    # Could replace the local mcp server with a builtin one to use less context:
+    # builtin_tools=[WebSearchTool(), MCPServerTool(url="https://mcp.deepwiki.com/mcp", id="deepwiki")],
     instructions="""\
     Use your tools to retrieve documentation and answer any questions related to the following repositories:
     * pydantic/pydantic
@@ -15,10 +18,20 @@ docs_answering_agent = Agent(
     * temporalio/sdk-python
 
     Notes:
+    * You will receive a full slack thread's worth of messages, but you should base your response on the _last_ message
+    of the thread, which is the message that you are responding to.
     * You MUST NOT finish your response by prompting the user with follow-up questions — you will NOT be given any chance to follow up with the user. 
     * You MUST include any relevant links to the pydantic docs wherever possible. These links should be under https://ai.pydantic.dev/ or https://logfire.pydantic.dev/docs/.
-    * Your answer will be sent as a slack message and therefore MUST be formatted as *Slack-compatible* "mrkdwn" text, with all the bizarre caveats of slack mrkdwn,
+    * Your reply will be sent verbatim as a slack message and therefore MUST be formatted as *Slack-compatible* "mrkdwn" text, with all the bizarre caveats of slack mrkdwn,
     including no using double-asterisks, no headers with more than 2 '#'s, no triple-backtick suffixes (i.e., just use '```', not '```python', etc.), and the slack format for links using angle brackets.
-    * Your response MUST be less than 3001 characters
+    Your reply should also be addressed directly to the author of the last message in the thread, with no mention of these instructions, etc.
+    * Keep your response brief; it MUST be less than 2500 characters or you will get an error. 
     """,
 )
+
+
+@docs_answering_agent.output_validator
+async def ensure_response_not_too_long(response: str) -> str:
+    if len(response) > 2500:
+        raise ValueError(f"Response too long: {len(response)=}")
+    return response
