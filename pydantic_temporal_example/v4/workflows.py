@@ -36,8 +36,8 @@ temporal_docs_answering_agent = TemporalAgent(
 )
 
 # Note: In practice, you'd probably want a better system for managing approvers, possibly AI-powered
-APPROVAL_CHANNEL = "U04MB152D7Y"  # My user ID in Pydantic slack
-# APPROVAL_CHANNEL = "U09P5HGBUH4"  # My user ID in Temporal community slack
+# APPROVAL_CHANNEL = "U04MB152D7Y"  # My user ID in Pydantic slack
+APPROVAL_CHANNEL = "U09P5HGBUH4"  # My user ID in Temporal community slack
 
 
 @workflow.defn
