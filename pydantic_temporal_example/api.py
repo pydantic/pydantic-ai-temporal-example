@@ -63,7 +63,7 @@ async def handle_url_verification_event(event: URLVerificationEvent) -> JSONResp
 
 async def handle_app_mention_event(event: AppMentionEvent, temporal_client: TemporalClient) -> Response:
     settings = get_settings()
-    workflow_id = f"app-mention-{event.reply_thread_ts.replace('.', '-')}"
+    workflow_id = f"app-mention-{event.channel}-{event.reply_thread_ts.replace('.', '-')}"
     await temporal_client.start_workflow(
         SlackThreadWorkflow.run,
         id=workflow_id,
@@ -75,7 +75,7 @@ async def handle_app_mention_event(event: AppMentionEvent, temporal_client: Temp
 
 
 async def handle_message_channels_event(event: MessageChannelsEvent, temporal_client: TemporalClient) -> Response:
-    maybe_workflow_id = f"app-mention-{event.reply_thread_ts.replace('.', '-')}"
+    maybe_workflow_id = f"app-mention-{event.channel}-{event.reply_thread_ts.replace('.', '-')}"
     maybe_handle = temporal_client.get_workflow_handle_for(SlackThreadWorkflow.run, workflow_id=maybe_workflow_id)
     try:
         await maybe_handle.describe()
@@ -91,7 +91,8 @@ async def handle_interaction_event(body: dict[str, Any], temporal_client: Tempor
     # Get the ID from body
     logfire.info("body", content=body)
     event_thread_ts = body["actions"][0]["value"].split(":")[0]
-    maybe_workflow_id = f"app-mention-{event_thread_ts.replace('.', '-')}"
+    event_channel = body["channel"]
+    maybe_workflow_id = f"app-mention-{event_channel}-{event_thread_ts.replace('.', '-')}"
     maybe_handle = temporal_client.get_workflow_handle_for(SlackThreadWorkflow.run, workflow_id=maybe_workflow_id)
     try:
         await maybe_handle.describe()

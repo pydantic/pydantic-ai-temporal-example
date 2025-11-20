@@ -62,7 +62,7 @@ SlackEventsAPIBodyAdapter: TypeAdapter[SlackEventsAPIBody | URLVerificationEvent
 
 class SlackMessageID(BaseModel):
     channel: str
-    ts: str | None
+    ts: str
 
 
 class SlackReply(BaseModel):

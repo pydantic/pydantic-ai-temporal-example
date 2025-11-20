@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import logfire
 from pydantic import with_config
-from pydantic_ai import MCPServerTool, WebSearchTool
+from pydantic_ai import WebSearchTool
 
 logfire.configure(scrubbing=False)
 logfire.instrument_pydantic_ai()
@@ -15,7 +15,7 @@ server = MCPServerStreamableHTTP(url="https://mcp.deepwiki.com/mcp", timeout=30)
 docs_answering_agent = Agent(
     "openai-responses:gpt-5-mini",
     toolsets=[server],
-    builtin_tools=[WebSearchTool()], #, MCPServerTool(id="deepwiki", url="https://mcp.deepwiki.com/mcp")],
+    builtin_tools=[WebSearchTool()],  # , MCPServerTool(id="deepwiki", url="https://mcp.deepwiki.com/mcp")],
     instructions="""\
     Use your tools to retrieve documentation and answer any questions related to the following repositories:
     * pydantic/pydantic
@@ -31,6 +31,7 @@ docs_answering_agent = Agent(
 
 async def answer_question_with_docs(question: str) -> str:
     return (await docs_answering_agent.run(question)).output
+
 
 @dataclass
 @with_config(use_attribute_docstrings=True)

@@ -194,7 +194,7 @@ class SlackThreadWorkflow:
 
         # Post the approval request
         await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
-                slack_chat_post_message,
-                approval_request,
-                start_to_close_timeout=timedelta(seconds=10),
-            )
+            slack_chat_post_message,
+            approval_request,
+            start_to_close_timeout=timedelta(seconds=10),
+        )
