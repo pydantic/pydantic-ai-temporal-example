@@ -5,8 +5,8 @@ from typing import Any
 from temporalio.worker import Plugin, Worker
 
 from pydantic_temporal_example.settings import get_settings
-from pydantic_temporal_example.temporal.client import build_temporal_client
-from pydantic_temporal_example.temporal.slack_activities import ALL_SLACK_ACTIVITIES
+from pydantic_temporal_example.temporal_client import build_temporal_client
+from pydantic_temporal_example.temporal_slack_activities import ALL_SLACK_ACTIVITIES
 
 
 @asynccontextmanager

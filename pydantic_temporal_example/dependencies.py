@@ -8,7 +8,7 @@ from starlette.requests import Request
 from temporalio.client import Client as TemporalClient
 
 from pydantic_temporal_example.settings import get_settings
-from pydantic_temporal_example.temporal.client import build_temporal_client
+from pydantic_temporal_example.temporal_client import build_temporal_client
 
 
 @asynccontextmanager

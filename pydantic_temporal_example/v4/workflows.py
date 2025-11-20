@@ -15,7 +15,7 @@ from pydantic_temporal_example.models import (
     SlackMessageID,
     SlackReply,
 )
-from pydantic_temporal_example.temporal.slack_activities import (
+from pydantic_temporal_example.temporal_slack_activities import (
     slack_chat_post_message,
     slack_conversations_replies,
     slack_get_permalink,
@@ -70,7 +70,7 @@ class SlackThreadWorkflow:
         # Load/update thread contents
         thread = SlackMessageID(channel=event.channel, ts=event.reply_thread_ts)
         request = SlackConversationsRepliesRequest(channel=thread.channel, ts=thread.ts, oldest=self._most_recent_ts)
-        new_messages = await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
+        new_messages = await workflow.execute_activity(
             slack_conversations_replies,
             request,
             start_to_close_timeout=timedelta(seconds=10),
@@ -109,7 +109,7 @@ class SlackThreadWorkflow:
             approval_request = await self._generate_approval_request(event, proposed_response, reply_id)
 
             # Post the approval request
-            await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
+            await workflow.execute_activity(
                 slack_chat_post_message,
                 approval_request,
                 start_to_close_timeout=timedelta(seconds=10),
@@ -165,7 +165,6 @@ class SlackThreadWorkflow:
             ],
         )
 
-
     @workflow.signal
     async def submit_interaction(self, body: dict[str, Any]):
         response_url = body["response_url"]
@@ -176,7 +175,7 @@ class SlackThreadWorkflow:
         pending_reply_id = body["actions"][0]["value"].split(":")[2]
         pending_reply = self._pending_replies.pop(pending_reply_id, None)
         if pending_reply is not None and response == "Approve":  # TODO: Is this the right value?
-            await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
+            await workflow.execute_activity(
                 slack_chat_post_message,
                 pending_reply,
                 start_to_close_timeout=timedelta(seconds=10),

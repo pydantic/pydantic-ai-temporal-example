@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from pydantic_ai.durable_exec.temporal import AgentPlugin
 
 from pydantic_temporal_example.dependencies import lifespan
-from pydantic_temporal_example.temporal.worker import temporal_worker
+from pydantic_temporal_example.temporal_worker import temporal_worker
 from pydantic_temporal_example.v3.api import router
 from pydantic_temporal_example.v3.workflows import (
     SlackThreadWorkflow,

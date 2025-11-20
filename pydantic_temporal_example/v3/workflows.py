@@ -14,7 +14,7 @@ from pydantic_temporal_example.models import (
     SlackMessageID,
     SlackReply,
 )
-from pydantic_temporal_example.temporal.slack_activities import (
+from pydantic_temporal_example.temporal_slack_activities import (
     slack_chat_post_message,
     slack_conversations_replies,
 )
@@ -62,7 +62,7 @@ class SlackThreadWorkflow:
         # Load/update thread contents
         thread = SlackMessageID(channel=event.channel, ts=event.reply_thread_ts)
         request = SlackConversationsRepliesRequest(channel=thread.channel, ts=thread.ts, oldest=self._most_recent_ts)
-        new_messages = await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
+        new_messages = await workflow.execute_activity(
             slack_conversations_replies,
             request,
             start_to_close_timeout=timedelta(seconds=10),
@@ -94,7 +94,7 @@ class SlackThreadWorkflow:
             ]
 
             # Post the response
-            await workflow.execute_activity(  # pyright: ignore[reportUnknownMemberType]
+            await workflow.execute_activity(
                 slack_chat_post_message,
                 SlackReply(
                     thread=SlackMessageID(channel=event.channel, ts=event.reply_thread_ts),
